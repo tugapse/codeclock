@@ -6,6 +6,8 @@ It does not depend on any editor or desktop: it is a small standalone Rust progr
 
 ![The history dashboard, week view](docs/images/week.png)
 
+**[Try the dashboard with sample data](https://tugapse.github.io/codeclock/)**: it runs in your browser, and edits stay on the page.
+
 ## How time is counted
 
 - **Only real editor work counts.** Time in a browser, a terminal, or the app you are testing does not count, even if the editor is open behind it.
