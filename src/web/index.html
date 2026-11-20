@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>codeclock history</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%232a78d6'/%3E%3Cpath d='M6 4.5v7l5.5-3.5z' fill='white'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f3f0;
+  --surface: #fcfcfb;
+  --border: #e3e2dd;
+  --grid: #ecebe7;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #75746f;
+  --accent: #2a78d6;
+  --accent-ink: #1c5cab;
+  --danger: #c73534;
+  --good: #008300;
+  --hover: #f0efec;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --other: #a3a29c;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --border: #2e2e2c; --grid: #262624;
+    --text: #f0efec; --text-2: #c3c2b7; --text-3: #95948d;
+    --accent: #3987e5; --accent-ink: #86b6ef; --danger: #e66767; --good: #0ca30c; --hover: #232321;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    --other: #6f6e69;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --border: #2e2e2c; --grid: #262624;
+  --text: #f0efec; --text-2: #c3c2b7; --text-3: #95948d;
+  --accent: #3987e5; --accent-ink: #86b6ef; --danger: #e66767; --good: #0ca30c; --hover: #232321;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  --other: #6f6e69;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Ubuntu, Cantarell, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+main { max-width: 1040px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 10px; }
+.live { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.live.on .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
+.live.on { color: var(--text); }
+.head-right { display: flex; align-items: center; gap: 8px; }
+.sync { display: none; align-items: center; gap: 6px; color: var(--text-2); font-size: 13px; padding: 4px 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface); cursor: pointer; font-family: inherit; }
+.sync.on { display: inline-flex; }
+.sync:hover { background: var(--hover); }
+.sync.err { color: var(--danger); }
+.sync .spin { display: inline-block; }
+.sync.busy .spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+select.machine { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 8px; display: none; }
+select.machine.on { display: inline-block; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+.seg button { border: 0; background: none; color: var(--text-2); padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.nav { display: inline-flex; align-items: center; gap: 4px; }
+.nav button, .btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px;
+  padding: 5px 10px; cursor: pointer; font: inherit; }
+.nav button:disabled { opacity: .4; cursor: default; }
+.btn:hover, .nav button:not(:disabled):hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.danger { color: var(--danger); }
+.period { font-weight: 600; min-width: 190px; text-align: center; }
+.spacer { flex: 1; }
+.filter { display: none; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); }
+.filter.on { display: inline-flex; }
+.filter button { border: 0; background: none; color: var(--text-2); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.tile .k { color: var(--text-2); font-size: 12px; }
+.tile .v { font-size: 22px; font-weight: 650; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chart { position: relative; }
+.chart svg { display: block; overflow: visible; max-width: 100%; height: auto; }
+.chart text { fill: var(--text-3); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; color: var(--text-2); font-size: 12px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.12); min-width: 150px; display: none; z-index: 2; }
+.tip b { display: block; margin-bottom: 4px; }
+.tip .row { display: flex; align-items: center; gap: 6px; }
+.tip .row .n { flex: 1; color: var(--text-2); }
+.tip .hint { color: var(--text-3); margin-top: 4px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 500; color: var(--text-3); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+td.time { white-space: nowrap; }
+.projects tbody tr { cursor: pointer; }
+.projects tbody tr:hover { background: var(--hover); }
+.projects tbody tr.sel { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.pname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pname span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.share { width: 30%; }
+.bar { height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; }
+.empty { color: var(--text-3); padding: 14px 0; text-align: center; }
+.day-h td { background: var(--bg); color: var(--text-2); font-size: 12px; font-weight: 600; padding: 5px 8px; }
+.badge { font-size: 11px; color: var(--good); border: 1px solid currentColor; border-radius: 999px; padding: 0 6px; margin-left: 6px; }
+.actions { text-align: right; white-space: nowrap; }
+.actions button { margin-left: 4px; padding: 3px 8px; font-size: 12px; }
+.edit input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; }
+.edit input[type="text"] { width: 100%; min-width: 120px; }
+.err { color: var(--danger); font-size: 12px; margin-top: 4px; }
+details summary { cursor: pointer; color: var(--text-2); font-size: 12px; margin-top: 10px; }
+.muted { color: var(--text-3); }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--surface);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; display: none; z-index: 5; }
+@media (max-width: 720px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .period { min-width: 0; flex: 1; }
+  .hide-sm { display: none; }
+  .share { display: none; }
+  .actions { white-space: normal; width: 1%; }
+  .actions button { display: block; width: 100%; margin: 2px 0; }
+}
+#blocks { overflow-x: auto; }
+.dur-sm { display: none; font-size: 12px; }
+@media (max-width: 720px) { .dur-sm { display: block; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>codeclock</h1>
+    <div class="head-right">
+      <button class="sync" id="sync" title="Sync with your other machines now"><span class="spin" aria-hidden="true">⟳</span><span id="sync-text">Sync</span></button>
+      <div class="live" id="live"><span class="dot"></span><span id="live-text">Paused</span></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Period" id="views">
+      <button data-view="day">Day</button><button data-view="week">Week</button><button data-view="month">Month</button><button data-view="year">Year</button><button data-view="all">All</button>
+    </div>
+    <div class="nav">
+      <button id="prev" aria-label="Previous period">‹</button>
+      <span class="period" id="period"></span>
+      <button id="next" aria-label="Next period">›</button>
+    </div>
+    <button class="btn" id="today">Now</button>
+    <select class="machine" id="machine" aria-label="Machine"></select>
+    <span class="filter" id="filter"><span class="sw" id="filter-sw"></span><span id="filter-name"></span><button id="filter-x" aria-label="Show all projects">×</button></span>
+    <span class="spacer"></span>
+    <button class="btn" id="csv">Export CSV</button>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">Total</div><div class="v" id="t-total">–</div></div>
+    <div class="tile"><div class="k">Active days</div><div class="v" id="t-days">–</div></div>
+    <div class="tile"><div class="k">Average per active day</div><div class="v" id="t-avg">–</div></div>
+    <div class="tile"><div class="k" id="t-top-k">Top project</div><div class="v" id="t-top">–</div></div>
+  </div>
+
+  <section class="card">
+    <h2 id="chart-title">Time</h2>
+    <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+    <div class="legend" id="legend"></div>
+    <details><summary>Show as table</summary><div id="chart-table"></div></details>
+  </section>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Projects</h2>
+      <table class="projects">
+        <thead><tr><th>Project</th><th class="share hide-sm">Share</th><th class="num">Time</th></tr></thead>
+        <tbody id="projects"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Blocks</h2>
+      <div id="blocks"></div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<datalist id="project-names"></datalist>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const SVG = "http://www.w3.org/2000/svg";
+const SLOTS = 8;
+const LOCALE = "en-GB";
+
+const state = {
+  view: "week",
+  anchor: new Date(),
+  project: null,      // filter
+  blocks: [],
+  now: Date.now() / 1000,
+  live: { project: null, block: null },
+  ranks: new Map(),   // project -> all-time rank (stable colors)
+  first: null,        // first block start (s)
+  editing: null,      // block id
+  machine: null,      // machine filter
+  machines: [],
+  sync: { enabled: false },
+  syncing: false,
+};
+
+// ---------- time helpers ----------
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const startOfWeek = (d) => addDays(startOfDay(d), -((d.getDay() + 6) % 7));
+const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1);
+const addMonths = (d, n) => new Date(d.getFullYear(), d.getMonth() + n, 1);
+const startOfYear = (d) => new Date(d.getFullYear(), 0, 1);
+const sec = (d) => Math.floor(d.getTime() / 1000);
+const fromSec = (s) => new Date(s * 1000);
+const fmt = (opts) => new Intl.DateTimeFormat(LOCALE, opts);
+const F = {
+  wd: fmt({ weekday: "short" }), dm: fmt({ day: "numeric", month: "short" }),
+  wdm: fmt({ weekday: "short", day: "numeric", month: "short" }),
+  full: fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+  my: fmt({ month: "long", year: "numeric" }), mon: fmt({ month: "short" }),
+  monY: fmt({ month: "short", year: "numeric" }), hm: fmt({ hour: "2-digit", minute: "2-digit" }),
+};
+
+function dur(s) {
+  const m = Math.floor(Math.max(0, s) / 60), h = Math.floor(m / 60);
+  return h > 0 ? `${h}h ${String(m % 60).padStart(2, "0")}m` : `${m}m`;
+}
+
+// The window and buckets for the current view.
+function frame() {
+  const a = state.anchor, b = [];
+  let from, to, label;
+  switch (state.view) {
+    case "day": {
+      from = startOfDay(a); to = addDays(from, 1); label = F.full.format(from);
+      for (let h = 0; h < 24; h++) {
+        const s = new Date(from.getFullYear(), from.getMonth(), from.getDate(), h);
+        const e = new Date(from.getFullYear(), from.getMonth(), from.getDate(), h + 1);
+        b.push({ s, e, short: String(h), long: `${String(h).padStart(2, "0")}:00–${String(h + 1).padStart(2, "0")}:00` });
+      }
+      break;
+    }
+    case "week": {
+      from = startOfWeek(a); to = addDays(from, 7);
+      label = `${F.dm.format(from)} – ${F.dm.format(addDays(to, -1))} ${addDays(to, -1).getFullYear()}`;
+      for (let i = 0; i < 7; i++) {
+        const s = addDays(from, i);
+        b.push({ s, e: addDays(s, 1), short: F.wd.format(s), long: F.wdm.format(s), drill: ["day", s] });
+      }
+      break;
+    }
+    case "month": {
+      from = startOfMonth(a); to = addMonths(from, 1); label = F.my.format(from);
+      for (let s = from; s < to; s = addDays(s, 1)) {
+        b.push({ s, e: addDays(s, 1), short: String(s.getDate()), long: F.wdm.format(s), drill: ["day", s] });
+      }
+      break;
+    }
+    case "year": {
+      from = startOfYear(a); to = new Date(from.getFullYear() + 1, 0, 1); label = String(from.getFullYear());
+      for (let i = 0; i < 12; i++) {
+        const s = addMonths(from, i);
+        b.push({ s, e: addMonths(s, 1), short: F.mon.format(s), long: F.my.format(s), drill: ["month", s] });
+      }
+      break;
+    }
+    default: { // all
+      const now = new Date();
+      from = startOfMonth(state.first ? fromSec(state.first) : now);
+      to = addMonths(startOfMonth(now), 1);
+      const months = (to.getFullYear() - from.getFullYear()) * 12 + to.getMonth() - from.getMonth();
+      label = "All time";
+      if (months > 36) {
+        from = startOfYear(from);
+        for (let y = from.getFullYear(); y <= now.getFullYear(); y++) {
+          const s = new Date(y, 0, 1);
+          b.push({ s, e: new Date(y + 1, 0, 1), short: String(y), long: String(y), drill: ["year", s] });
+        }
+        to = b[b.length - 1].e;
+      } else {
+        for (let s = from; s < to; s = addMonths(s, 1)) {
+          b.push({ s, e: addMonths(s, 1), short: F.mon.format(s), long: F.my.format(s), drill: ["month", s] });
+        }
+      }
+    }
+  }
+  return { from, to, label, buckets: b };
+}
+
+function shift(n) {
+  const a = state.anchor;
+  state.anchor = {
+    day: () => addDays(a, n), week: () => addDays(a, 7 * n), month: () => addMonths(a, n),
+    year: () => new Date(a.getFullYear() + n, 0, 1), all: () => a,
+  }[state.view]();
+}
+
+// ---------- colors: follow the project, not its rank in this period ----------
+function colorOf(p) {
+  const r = state.ranks.get(p);
+  return r !== undefined && r < SLOTS ? `var(--s${r + 1})` : "var(--other)";
+}
+const OTHER = "Other projects";
+const groupOf = (p) => { const r = state.ranks.get(p); return r !== undefined && r < SLOTS ? p : OTHER; };
+const swatch = (nm) => (nm === OTHER ? "var(--other)" : colorOf(nm));
+
+// ---------- data ----------
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "X-Codeclock": "1", "Content-Type": "application/json", ...(opts.headers || {}) } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  return body;
+}
+
+async function loadProjects() {
+  const r = await api("/api/projects");
+  state.ranks = new Map(r.projects.map((p, i) => [p.name, i]));
+  state.first = r.first;
+  state.machines = r.machines;
+  const sel = $("machine");
+  sel.classList.toggle("on", r.machines.length > 1);
+  sel.replaceChildren(
+    Object.assign(document.createElement("option"), { value: "", textContent: "All machines" }),
+    ...r.machines.map((m) => Object.assign(document.createElement("option"), { value: m, textContent: m })),
+  );
+  if (state.machine && !r.machines.includes(state.machine)) state.machine = null;
+  sel.value = state.machine || "";
+  const names = new Set([...r.projects.map((p) => p.name), ...r.folders]);
+  const dl = $("project-names");
+  dl.replaceChildren(...[...names].sort().map((n) => Object.assign(document.createElement("option"), { value: n })));
+}
+
+let loadSeq = 0;
+async function load() {
+  const f = frame(), seq = ++loadSeq;
+  const r = await api(`/api/blocks?from=${sec(f.from)}&to=${sec(f.to)}`);
+  if (seq !== loadSeq) return;
+  state.blocks = r.blocks; state.now = r.now; setLive(r.live);
+  render();
+}
+
+function ago(s) {
+  const d = Math.max(0, Date.now() / 1000 - s);
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60)} min ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)} h ago`;
+  return F.dm.format(fromSec(s));
+}
+
+function setSync(s) {
+  if (!s) return;
+  state.sync = s;
+  const b = $("sync");
+  b.classList.toggle("on", !!s.enabled);
+  b.classList.toggle("busy", state.syncing);
+  const offline = s.error && (!s.last_online || s.last_online < s.last);
+  b.classList.toggle("err", !!offline && !state.syncing);
+  $("sync-text").textContent = state.syncing ? "Syncing…"
+    : offline ? `Offline · synced ${s.last_online ? ago(s.last_online) : "never"}`
+    : s.last_online ? `Synced ${ago(s.last_online)}` : "Sync";
+  b.title = offline ? `Last sync could not reach the other machines: ${s.error}` : "Sync with your other machines now";
+}
+
+async function syncNow() {
+  if (state.syncing || !state.sync.enabled) return;
+  state.syncing = true; setSync(state.sync);
+  try {
+    const r = await api("/api/sync", { method: "POST" });
+    state.syncing = false; setSync(r.sync);
+    if (r.error) toast(r.error);
+    else if (r.outcome.received) toast(`${r.outcome.received} changes from your other machines`);
+    await loadProjects(); await load();
+  } catch (x) { state.syncing = false; setSync(state.sync); toast(x.message); }
+}
+
+function setLive(live) {
+  state.live = live;
+  if (!state.syncing) setSync(live.sync);
+  $("live").classList.toggle("on", !!live.project);
+  $("live-text").textContent = live.project ? `Counting · ${live.project}` : "Paused";
+}
+
+// ---------- aggregation ----------
+function clip(b, s, e) { return Math.max(0, Math.min(b.end, e) - Math.max(b.start, s)); }
+
+function aggregate(f) {
+  const blocks = state.blocks.filter((b) => (!state.project || b.project === state.project) && (!state.machine || b.machine === state.machine));
+  const from = sec(f.from), to = sec(f.to);
+  const totals = new Map();
+  for (const b of blocks) {
+    const t = clip(b, from, to);
+    if (t > 0) totals.set(b.project, (totals.get(b.project) || 0) + t);
+  }
+  const buckets = f.buckets.map((k) => {
+    const s = sec(k.s), e = sec(k.e), by = new Map();
+    let sum = 0;
+    for (const b of blocks) {
+      const t = clip(b, s, e);
+      if (t > 0) { const g = state.project ? b.project : groupOf(b.project); by.set(g, (by.get(g) || 0) + t); sum += t; }
+    }
+    return { ...k, by, sum };
+  });
+  // Active days: days with any time, across the window.
+  const days = new Set();
+  for (const b of blocks) {
+    let d = startOfDay(fromSec(Math.max(b.start, from)));
+    while (sec(d) < Math.min(b.end, to)) {
+      if (clip(b, sec(d), sec(addDays(d, 1))) > 0) days.add(d.getTime());
+      d = addDays(d, 1);
+    }
+  }
+  return { blocks, totals: [...totals].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), buckets, days: days.size };
+}
+
+// ---------- rendering ----------
+function render() {
+  const f = frame(), agg = aggregate(f);
+  $("period").textContent = f.label;
+  for (const btn of $("views").querySelectorAll("button")) btn.setAttribute("aria-pressed", btn.dataset.view === state.view);
+  $("prev").disabled = state.view === "all";
+  $("next").disabled = state.view === "all" || f.to.getTime() > Date.now();
+  $("today").disabled = f.from.getTime() <= Date.now() && Date.now() < f.to.getTime();
+
+  $("filter").classList.toggle("on", !!state.project);
+  if (state.project) { $("filter-name").textContent = state.project; $("filter-sw").style.background = colorOf(state.project); }
+
+  const total = agg.totals.reduce((s, [, t]) => s + t, 0);
+  $("t-total").textContent = dur(total);
+  $("t-days").textContent = String(agg.days);
+  $("t-avg").textContent = agg.days ? dur(total / agg.days) : "–";
+  if (state.project) {
+    $("t-top-k").textContent = "Share of all projects";
+    const all = state.blocks.filter((b) => !state.machine || b.machine === state.machine)
+      .reduce((s, b) => s + clip(b, sec(f.from), sec(f.to)), 0);
+    $("t-top").textContent = all ? `${Math.round((100 * total) / all)}%` : "–";
+  } else {
+    $("t-top-k").textContent = "Top project";
+    $("t-top").textContent = agg.totals[0] ? agg.totals[0][0] : "–";
+  }
+
+  const unit = { day: "per hour", week: "per day", month: "per day", year: "per month" }[state.view]
+    || (f.buckets.length && f.buckets[0].e - f.buckets[0].s > 40 * 864e5 ? "per year" : "per month");
+  $("chart-title").textContent = `Time ${unit}${state.project ? ` · ${state.project}` : ""}`;
+
+  renderChart(agg);
+  renderProjects(agg, total);
+  renderBlocks(agg);
+  writeHash();
+}
+
+function series(agg) {
+  // Stable stacking order: all-time rank, "Other" last.
+  const names = new Set();
+  for (const k of agg.buckets) for (const n of k.by.keys()) names.add(n);
+  return [...names].sort((a, b) => (a === OTHER) - (b === OTHER) || (state.ranks.get(a) ?? 1e9) - (state.ranks.get(b) ?? 1e9));
+}
+
+function niceStep(max) {
+  const steps = [300, 600, 900, 1800, 3600, 7200, 10800, 14400, 21600, 43200, 86400, 172800, 360000, 720000, 1800000, 3600000];
+  return steps.find((s) => max / s <= 4) || steps[steps.length - 1];
+}
+const tickLabel = (s) => (s >= 3600 ? `${s / 3600}h` : `${s / 60}m`);
+
+function el(name, attrs = {}, parent) {
+  const e = document.createElementNS(SVG, name);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function renderChart(agg) {
+  const box = $("chart"), tip = $("tip");
+  box.querySelector("svg")?.remove();
+  const W = Math.max(240, box.clientWidth), H = 230, m = { l: 40, r: 6, t: 8, b: 24 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b, n = agg.buckets.length;
+  const max = Math.max(...agg.buckets.map((k) => k.sum), 0);
+  const step = niceStep(Math.max(max, 1800)), top = Math.max(step, Math.ceil(max / step) * step);
+  const y = (v) => m.t + ph - (v / top) * ph;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img", "aria-label": $("chart-title").textContent });
+
+  for (let v = 0; v <= top; v += step) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? "var(--border)" : "var(--grid)", "stroke-width": 1 }, svg);
+    const t = el("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end" }, svg);
+    t.textContent = tickLabel(v);
+  }
+
+  const band = pw / n, bw = Math.max(2, Math.min(band * 0.68, 44));
+  const names = series(agg);
+  const labelEvery = Math.max(1, Math.ceil((n * 30) / pw));
+  agg.buckets.forEach((k, i) => {
+    const cx = m.l + band * i + band / 2;
+    let acc = 0;
+    const segs = names.filter((nm) => k.by.get(nm));
+    segs.forEach((nm, j) => {
+      const v = k.by.get(nm), y0 = y(acc), y1 = y(acc + v);
+      acc += v;
+      const h = Math.max(0, y0 - y1);
+      if (h < 0.5) return;
+      const last = j === segs.length - 1, r = Math.min(4, bw / 2, h);
+      const x0 = cx - bw / 2, x1 = cx + bw / 2;
+      // Rounded top on the last segment only; segments separated by a surface hairline.
+      const d = last
+        ? `M${x0},${y0} V${y1 + r} Q${x0},${y1} ${x0 + r},${y1} H${x1 - r} Q${x1},${y1} ${x1},${y1 + r} V${y0} Z`
+        : `M${x0},${y0} V${y1} H${x1} V${y0} Z`;
+      el("path", { d, fill: swatch(nm), stroke: "var(--surface)", "stroke-width": 1 }, svg);
+    });
+    if (i % labelEvery === 0) {
+      const t = el("text", { x: cx, y: H - 6, "text-anchor": "middle" }, svg);
+      t.textContent = k.short;
+    }
+    const hit = el("rect", { x: m.l + band * i, y: m.t, width: band, height: ph, fill: "transparent", tabindex: 0,
+      "aria-label": `${k.long}: ${dur(k.sum)}` }, svg);
+    if (k.drill) hit.style.cursor = "pointer";
+    const show = () => {
+      tip.replaceChildren();
+      const b = document.createElement("b"); b.textContent = `${k.long} · ${dur(k.sum)}`; tip.appendChild(b);
+      for (const nm of names.slice().reverse()) {
+        const v = k.by.get(nm); if (!v) continue;
+        const row = document.createElement("div"); row.className = "row";
+        const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = swatch(nm);
+        const nn = document.createElement("span"); nn.className = "n"; nn.textContent = nm;
+        const vv = document.createElement("span"); vv.textContent = dur(v);
+        row.append(sw, nn, vv); tip.appendChild(row);
+      }
+      if (k.drill && k.sum) { const h = document.createElement("div"); h.className = "hint"; h.textContent = "Click to open"; tip.appendChild(h); }
+      tip.style.display = "block";
+      const tw = tip.offsetWidth;
+      tip.style.left = `${Math.min(Math.max(0, cx - tw / 2), W - tw)}px`;
+      tip.style.top = `${Math.max(0, y(k.sum) - tip.offsetHeight - 8)}px`;
+    };
+    hit.addEventListener("mouseenter", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("mouseleave", () => (tip.style.display = "none"));
+    hit.addEventListener("blur", () => (tip.style.display = "none"));
+    const go = () => { if (k.drill) { state.view = k.drill[0]; state.anchor = k.drill[1]; tip.style.display = "none"; load(); } };
+    hit.addEventListener("click", go);
+    hit.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  });
+  box.appendChild(svg);
+
+  // Legend (always for 2+ series, so identity is never color alone).
+  const lg = $("legend");
+  lg.replaceChildren(...(names.length > 1 ? names : []).map((nm) => {
+    const s = document.createElement("span");
+    const sw = document.createElement("i"); sw.className = "sw"; sw.style.background = swatch(nm);
+    s.append(sw, document.createTextNode(nm));
+    return s;
+  }));
+
+  // Table view of the same numbers.
+  const t = document.createElement("table");
+  const head = t.createTHead().insertRow();
+  for (const h of ["Period", ...names, "Total"]) { const th = document.createElement("th"); th.textContent = h; if (h !== "Period") th.className = "num"; head.appendChild(th); }
+  const tb = t.createTBody();
+  for (const k of agg.buckets) {
+    if (!k.sum) continue;
+    const r = tb.insertRow();
+    r.insertCell().textContent = k.long;
+    for (const nm of names) { const c = r.insertCell(); c.className = "num"; c.textContent = k.by.get(nm) ? dur(k.by.get(nm)) : ""; }
+    const c = r.insertCell(); c.className = "num"; c.textContent = dur(k.sum);
+  }
+  $("chart-table").replaceChildren(tb.rows.length ? t : Object.assign(document.createElement("div"), { className: "empty", textContent: "No time in this period." }));
+}
+
+function renderProjects(agg, total) {
+  const tb = $("projects");
+  if (!agg.totals.length) {
+    tb.innerHTML = `<tr><td colspan="3" class="empty">No time in this period.</td></tr>`;
+    return;
+  }
+  const rows = agg.totals.map(([p, t]) => {
+    const tr = document.createElement("tr");
+    if (p === state.project) tr.className = "sel";
+    tr.title = state.project === p ? "Show all projects" : `Show only ${p}`;
+    const c1 = tr.insertCell(), name = document.createElement("div"); name.className = "pname";
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = colorOf(p);
+    const nm = document.createElement("span"); nm.textContent = p;
+    name.append(sw, nm); c1.appendChild(name);
+    const c2 = tr.insertCell(); c2.className = "share hide-sm";
+    const bar = document.createElement("div"); bar.className = "bar";
+    const fill = document.createElement("i"); fill.style.width = `${total ? (100 * t) / total : 0}%`; fill.style.background = colorOf(p);
+    bar.appendChild(fill); c2.appendChild(bar);
+    const c3 = tr.insertCell(); c3.className = "num"; c3.textContent = dur(t);
+    tr.addEventListener("click", () => { state.project = state.project === p ? null : p; state.editing = null; render(); });
+    return tr;
+  });
+  tb.replaceChildren(...rows);
+}
+
+const toLocalInput = (s) => {
+  const d = fromSec(s), p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const fromLocalInput = (v) => (v ? Math.floor(new Date(v).getTime() / 1000) : NaN);
+
+function renderBlocks(agg) {
+  const box = $("blocks");
+  if (!["day", "week"].includes(state.view)) {
+    box.innerHTML = `<div class="empty">Open a day or a week to see and edit its blocks. Click a bar to open it.</div>`;
+    return;
+  }
+  if (!agg.blocks.length) { box.innerHTML = `<div class="empty">No blocks in this period.</div>`; return; }
+  const t = document.createElement("table");
+  t.innerHTML = `<thead><tr><th>Time</th><th class="num hide-sm">Duration</th><th>Project</th><th class="hide-sm">Editor</th><th></th></tr></thead>`;
+  const tb = t.createTBody();
+  let lastDay = null;
+  for (const b of [...agg.blocks].reverse()) {
+    const day = startOfDay(fromSec(b.start)).getTime();
+    if (state.view === "week" && day !== lastDay) {
+      const h = tb.insertRow(); h.className = "day-h";
+      const c = h.insertCell(); c.colSpan = 5; c.textContent = F.full.format(new Date(day));
+      lastDay = day;
+    }
+    tb.appendChild(state.editing === b.id ? editRow(b) : viewRow(b));
+  }
+  box.replaceChildren(t);
+}
+
+function viewRow(b) {
+  const tr = document.createElement("tr");
+  const open = state.live.block === b.id;
+  const c1 = tr.insertCell(); c1.className = "time";
+  c1.textContent = `${F.hm.format(fromSec(b.start))} – ${F.hm.format(fromSec(b.end))}`;
+  if (open) { const s = document.createElement("span"); s.className = "badge"; s.textContent = "counting"; c1.appendChild(s); }
+  const d = document.createElement("div"); d.className = "dur-sm muted"; d.textContent = dur(b.end - b.start); c1.appendChild(d);
+  const c2 = tr.insertCell(); c2.className = "num hide-sm"; c2.textContent = dur(b.end - b.start);
+  const c3 = tr.insertCell(), name = document.createElement("div"); name.className = "pname";
+  const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = colorOf(b.project);
+  const nm = document.createElement("span"); nm.textContent = b.project;
+  name.append(sw, nm); c3.appendChild(name);
+  const c4 = tr.insertCell(); c4.className = "hide-sm muted";
+  c4.textContent = state.machines.length > 1 ? `${b.editor} · ${b.machine}` : b.editor;
+  const c5 = tr.insertCell(); c5.className = "actions";
+  if (!open) {
+    const e = Object.assign(document.createElement("button"), { className: "btn", textContent: "Edit" });
+    e.addEventListener("click", () => { state.editing = b.id; render(); });
+    const d = Object.assign(document.createElement("button"), { className: "btn danger", textContent: "Delete" });
+    d.addEventListener("click", () => removeBlock(b));
+    c5.append(e, d);
+  }
+  return tr;
+}
+
+function editRow(b) {
+  const tr = document.createElement("tr"); tr.className = "edit";
+  const s = Object.assign(document.createElement("input"), { type: "datetime-local", value: toLocalInput(b.start), step: 60 });
+  const e = Object.assign(document.createElement("input"), { type: "datetime-local", value: toLocalInput(b.end), step: 60 });
+  s.setAttribute("aria-label", "Start"); e.setAttribute("aria-label", "End");
+  const c1 = tr.insertCell(); c1.append(s, document.createTextNode(" "), e);
+  const c2 = tr.insertCell(); c2.className = "num muted hide-sm";
+  const upd = () => { const v = fromLocalInput(e.value) - fromLocalInput(s.value); c2.textContent = v > 0 ? dur(v) : "–"; };
+  s.addEventListener("input", upd); e.addEventListener("input", upd); upd();
+  const p = Object.assign(document.createElement("input"), { type: "text", value: b.project });
+  p.setAttribute("list", "project-names"); p.setAttribute("aria-label", "Project");
+  const c3 = tr.insertCell(); c3.colSpan = 2; c3.appendChild(p);
+  const err = document.createElement("div"); err.className = "err"; c3.appendChild(err);
+  const c5 = tr.insertCell(); c5.className = "actions";
+  const save = Object.assign(document.createElement("button"), { className: "btn primary", textContent: "Save" });
+  const cancel = Object.assign(document.createElement("button"), { className: "btn", textContent: "Cancel" });
+  cancel.addEventListener("click", () => { state.editing = null; render(); });
+  const submit = async () => {
+    // Keep the original seconds when a time was not changed (inputs only show minutes).
+    const ns = s.value === toLocalInput(b.start) ? b.start : fromLocalInput(s.value);
+    const ne = e.value === toLocalInput(b.end) ? b.end : fromLocalInput(e.value);
+    if (!(ne > ns)) { err.textContent = "The end must be after the start."; return; }
+    save.disabled = true;
+    try {
+      await api(`/api/blocks/${b.id}`, { method: "PATCH", body: JSON.stringify({ project: p.value.trim(), start: ns, end: ne }) });
+      state.editing = null; toast("Block saved");
+      await loadProjects(); await load();
+    } catch (x) { err.textContent = x.message; save.disabled = false; }
+  };
+  save.addEventListener("click", submit);
+  for (const i of [s, e, p]) i.addEventListener("keydown", (ev) => { if (ev.key === "Enter") submit(); if (ev.key === "Escape") cancel.click(); });
+  c5.append(save, cancel);
+  setTimeout(() => p.focus(), 0);
+  return tr;
+}
+
+async function removeBlock(b) {
+  const when = `${F.wdm.format(fromSec(b.start))}, ${F.hm.format(fromSec(b.start))} – ${F.hm.format(fromSec(b.end))}`;
+  if (!confirm(`Delete this block?\n\n${b.project} · ${dur(b.end - b.start)}\n${when}\n\nThis cannot be undone.`)) return;
+  try {
+    await api(`/api/blocks/${b.id}`, { method: "DELETE" });
+    toast("Block deleted");
+    await loadProjects(); await load();
+  } catch (x) { toast(x.message); }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.style.display = "none"), 2500);
+}
+
+// ---------- URL state ----------
+function writeHash() {
+  const d = state.anchor, p = (n) => String(n).padStart(2, "0");
+  const q = new URLSearchParams({ view: state.view, d: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` });
+  if (state.project) q.set("project", state.project);
+  if (state.machine) q.set("machine", state.machine);
+  history.replaceState(null, "", `#${q}`);
+}
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (["day", "week", "month", "year", "all"].includes(q.get("view"))) state.view = q.get("view");
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(q.get("d") || "");
+  if (m) state.anchor = new Date(+m[1], +m[2] - 1, +m[3]);
+  state.project = q.get("project") || null;
+  state.machine = q.get("machine") || null;
+}
+
+// ---------- events ----------
+$("views").addEventListener("click", (e) => {
+  const v = e.target.dataset?.view; if (!v) return;
+  state.view = v; state.editing = null; load();
+});
+$("prev").addEventListener("click", () => { shift(-1); state.editing = null; load(); });
+$("next").addEventListener("click", () => { shift(1); state.editing = null; load(); });
+$("today").addEventListener("click", () => { state.anchor = new Date(); state.editing = null; load(); });
+$("sync").addEventListener("click", syncNow);
+$("machine").addEventListener("change", (e) => { state.machine = e.target.value || null; state.editing = null; render(); });
+$("filter-x").addEventListener("click", () => { state.project = null; render(); });
+$("csv").addEventListener("click", () => {
+  const f = frame();
+  location.href = `/api/export.csv?from=${sec(f.from)}&to=${sec(f.to)}`;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, select") || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === "ArrowLeft" && !$("prev").disabled) $("prev").click();
+  if (e.key === "ArrowRight" && !$("next").disabled) $("next").click();
+});
+// Redraw the chart when its box changes width (window resize, fonts loading, layout settling).
+let resizeTimer, lastWidth = 0;
+new ResizeObserver(([entry]) => {
+  const w = Math.round(entry.contentRect.width);
+  if (w === lastWidth) return;
+  lastWidth = w;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (state.blocks) renderChart(aggregate(frame())); }, 80);
+}).observe($("chart"));
+
+// Refresh while looking at a period that includes now (not while editing).
+setInterval(async () => {
+  const f = frame();
+  if (state.editing !== null || document.hidden) return;
+  try {
+    if (f.from.getTime() <= Date.now() && Date.now() < f.to.getTime()) await load();
+    else setLive(await api("/api/live"));
+  } catch { /* the service may be restarting */ }
+}, 30000);
+
+readHash();
+(async () => {
+  try {
+    await loadProjects(); await load();
+    // Fetch what you did on your other machines, then show it.
+    if (state.sync.enabled) syncNow();
+  }
+  catch (x) { $("blocks").innerHTML = ""; toast(`Could not load data: ${x.message}`); }
+})();
+</script>
+</body>
+</html>
